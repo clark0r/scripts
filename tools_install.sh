@@ -5,6 +5,9 @@ apt upgrade -y
 # standard tooling
 apt install -y git screen net-tools
 
+# create some skel files
+touch /etc/profile.d/custom-aliases.sh
+
 # nmap & vulners
 apt install -y nmap
 mkdir -p /opt/vulners
@@ -20,6 +23,7 @@ apt install -y gobuster
 # scoutsuite
 apt install -y python3-pip
 pip3 install scoutsuite
+echo -e "alias scout='scout azure --cli --report-dir=. --subscriptions \${1}'" >> /etc/profile.d/custom-aliases.sh
 
 # metasploit
 curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall && chmod 755 msfinstall && ./msfinstall
