@@ -31,6 +31,16 @@ curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/t
 # az-cli
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
+# volatility
+git clone https://github.com/volatilityfoundation/volatility3.git /opt/volatility3/
+cd /opt/volatility3/
+sudo python setup.py install
+ln -s /opt/volatility3/vol.py /usr/bin/vol
+# volatility extras
+sudo apt-get install yara
+pip3 install --upgrade pip
+pip3 install distorm3 pycrypto openpyxl Pillow yara-python
+
 # exploitdb
 mkdir -p /opt/exploitdb
 git clone https://github.com/offensive-security/exploitdb.git /opt/exploitdb/
