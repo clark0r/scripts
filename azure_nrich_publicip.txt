@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# resource graph, fast method but is missing pagination if you have more than 1000 VM with publicip
+argIP(){
+az graph query --first 1000 -q "Resources
+    | where type =~ 'microsoft.compute/virtualmachines'
+    | project vmId = tolower(tostring(id)), vmName = name
+    | join (Resources
+        | where type =~ 'microsoft.network/networkinterfaces'
+        | mv-expand ipconfig=properties.ipConfigurations
+        | project vmId = tolower(tostring(properties.virtualMachine.id)), privateIp = ipconfig.properties.privateIPAddress, publicIpId = tostring(ipconfig.properties.publicIPAddress.id)
+        | join kind=leftouter (Resources
+            | where type =~ 'microsoft.network/publicipaddresses'
+            | project publicIpId = id, publicIp = properties.ipAddress
+        ) on publicIpId
+        | project-away publicIpId, publicIpId1
+        | summarize privateIps = make_list(privateIp), publicIps = make_list(publicIp) by vmId
+    ) on vmId
+    | project-away vmId1
+    | sort by vmName asc
+| where array_length(publicIps)>0"
+}
+
+# get all vm's with public ip addresses from arg, grab shodan data
+# fast, but will miss stuff
+argIP > public_az
+cat public_az | jq '.data[] | { publicIps }' | grep -Eo '[0-9]+.[0-9]+.[0-9]+.[0-9]+' > public_ip
+nrich public_ip > public_nrich
