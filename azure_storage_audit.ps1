@@ -6,34 +6,45 @@ Connect-AzAccount
 
 # Set output CSV and write headers
 $file = "c:\Users\clipper\Desktop\storage.csv"
+
 $output = "subscription,resourcegroup,storageaccount,storageaccount_allowpublicblob,storageaccount_defaultfirewall,container,container_accesslevel"
 Write-Output $output | Tee-Object -file $file
 
-$subs = Get-AzSubscription
+# we're only looking for enabled temenos cloud subscriptions
+$subs = Get-AzSubscription | where-object {($_.name -like '*prod') -or ($_.name -like '*Customer*') -and ($_.name -notlike '*finops') -and ($_.State -eq 'Enabled')}
+
+$counter = 0
 
 foreach ($sub in $subs) {
- set-azcontext $sub
- $accounts = Get-AzStorageAccount
+    $counter++
+    $status = 'Querying storage accounts in ' + $sub.name
+    Write-Progress -Activity $status -CurrentOperation $sub.name -PercentComplete (($counter / $subs.count) * 100)
 
- foreach ($account in $accounts) {
-  # we could write something here to skip if the account is set to public access false, as no container would be aboe to have anonymous access
-  # we could also put something in to skip those with network restricted, however we should find all anonymous access whether on a private or public network
+    set-azcontext $sub
+    $accounts = Get-AzStorageAccount
+
+    foreach ($account in $accounts) {
+        $ctx = $account.Context
+        $containers = Get-AzStorageContainerAcl -Context $ctx -ErrorAction SilentlyContinue
  
-  $ctx = $account.Context
-  $containers = get-azstoragecontainer -context $ctx 2>$null
- 
-  if (!$containers){ # skip if no containers in account
-   continue
-  } 
- 
-  foreach ($con in $containers) {
-   $output = "" + $sub + "," + $account.resourcegroupname + "," + $account.storageaccountname + "," + $account.AllowBlobPublicAccess + "," + $account.NetworkRuleSet.DefaultAction + "," + $con.Name + "," + $con.PublicAccess
-   Write-Output $output | Tee-Object -file $file -Append
-  }
- 
- # TODO : add storage account SMB file shares
- # TODO : add storage account SFTP shares
- # TODO : add storage account queues
- # TODO : add storage account tables
- }
+        if (!$containers){ # skip if no containers in account
+            continue
+        }
+
+        $containers = $containers | Where-Object -Property PublicAccess -ne "Off" # only looking for containers where anon access is permitted
+            foreach ($c in $containers) {
+                $output = "" + $sub.Name + "," + $account.resourcegroupname + "," + $account.storageaccountname + "," + $account.AllowBlobPublicAccess + "," + $account.NetworkRuleSet.DefaultAction + "," + $c.Name + "," + $c.PublicAccess
+                Write-Output $output | Tee-Object -file $file -Append
+
+#                [PSCustomObject]@{
+#                Subscription = $sub.Name
+#                ResourceGroup  = $account.resourcegroupname
+#                StorageAccount = $account.storageaccountname
+#                AccountNetworkRulSet = $account.NetworkRuleSet.DefaultAction
+#                BlobPublicAccess = $account.AllowBlobPublicAccess
+#                Container = $c.Name
+#                ContainerPublicAccess = $c.PublicAccess
+#            }        
+        }
+    }
 }
