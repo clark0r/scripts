@@ -1,0 +1,9 @@
+Resources
+| where type =~ 'microsoft.storage/storageaccounts'
+| extend allowBlobPublicAccess = parse_json(properties).allowBlobPublicAccess
+| extend publicAccess = parse_json(properties).publicNetworkAccess
+| join kind=inner (
+  ResourceContainers
+  | where type =~ 'microsoft.resources/subscriptions'
+  | project subscriptionId, name) on subscriptionId
+| project name1, name, resourceGroup, allowBlobPublicAccess, publicAccess
