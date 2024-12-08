@@ -79,4 +79,6 @@ do
         fetch_all_dns_records ${zone} | jq -r '.name | select(. | tostring | contains("domainkey") or startswith("_") | not)' >> $OUTPUT
 done
 
-nuclei -o ${OUTPUT}-nuclei.json -json -severity medium,high,critical -t --stats
+nuclei -up
+neclei -ut
+nuclei -o ${OUTPUT}-nuclei.json -j -s medium,high,critical --stats -l $OUTPUT
