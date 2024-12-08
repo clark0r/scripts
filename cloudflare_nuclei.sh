@@ -80,5 +80,5 @@ do
 done
 
 nuclei -up
-neclei -ut
+nuclei -ut
 nuclei -o ${OUTPUT}-nuclei.json -j -s medium,high,critical -stats -l $OUTPUT
